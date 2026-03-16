@@ -1,30 +1,21 @@
 /*
- * ╔══════════════════════════════════════════════════════════╗
- * ║  Elstract Launcher — App.xaml.cs                        ║
- * ║  Application startup, global exception handling,        ║
- * ║  single-instance guard, Discord RPC initialization      ║
- * ╚══════════════════════════════════════════════════════════╝
+ * Elstract Launcher — App.xaml.cs
+ * Application startup, global exception handling, Discord RPC init
  */
-
-using ElstractLauncher.Services;
-using ElstractLauncher.ViewModels;
+using System.IO;
 using System.Windows;
 using System.Windows.Threading;
+using ElstractLauncher.Services;
 
 namespace ElstractLauncher;
 
-/// <summary>
-/// Main application class — configures global services and handles unhandled exceptions.
-/// </summary>
 public partial class App : Application
 {
-    // ── Singleton services ────────────────────────────────────────────
-    public static DiscordService    Discord    { get; private set; } = null!;
-    public static LibraryService    Library    { get; private set; } = null!;
-    public static SettingsService   Settings   { get; private set; } = null!;
-    public static UpdateService     Updater    { get; private set; } = null!;
+    public static DiscordService  Discord  { get; private set; } = null!;
+    public static LibraryService  Library  { get; private set; } = null!;
+    public static SettingsService Settings { get; private set; } = null!;
+    public static UpdateService   Updater  { get; private set; } = null!;
 
-    // ── Application constants ─────────────────────────────────────────
     public const string AppName    = "Elstract Launcher";
     public const string AppVersion = "1.0.0";
     public const string GitHubRepo = "elstract-community/elstract-launcher";
@@ -32,48 +23,40 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
-
-        // Hook global exception handlers so crashes are logged gracefully
-        DispatcherUnhandledException          += OnDispatcherUnhandledException;
+        DispatcherUnhandledException               += OnDispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
 
-        // Initialize services
         Settings = new SettingsService();
         Settings.Load();
 
-        Library  = new LibraryService(Settings);
+        Library = new LibraryService(Settings);
         Library.Load();
 
-        Discord  = new DiscordService();
+        Discord = new DiscordService();
         Discord.Initialize();
         Discord.SetIdlePresence();
 
-        Updater  = new UpdateService(AppVersion, GitHubRepo);
+        Updater = new UpdateService(AppVersion, GitHubRepo);
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
-        // Stop all running game processes tracking
         Library.SaveAll();
         Discord.Dispose();
         base.OnExit(e);
     }
 
-    // ── Exception handlers ────────────────────────────────────────────
-
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         LogException(e.Exception);
-        e.Handled = true; // prevent crash, show error dialog
-        MessageBox.Show(
-            $"Unexpected error:\n{e.Exception.Message}",
+        e.Handled = true;
+        MessageBox.Show($"Unexpected error:\n{e.Exception.Message}",
             AppName, MessageBoxButton.OK, MessageBoxImage.Error);
     }
 
     private void OnDomainUnhandledException(object sender, UnhandledExceptionEventArgs e)
     {
-        if (e.ExceptionObject is Exception ex)
-            LogException(ex);
+        if (e.ExceptionObject is Exception ex) LogException(ex);
     }
 
     private static void LogException(Exception ex)
@@ -81,9 +64,7 @@ public partial class App : Application
         var logPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "Elstract", "crash.log");
-
         Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
-        File.AppendAllText(logPath,
-            $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}\n\n");
+        File.AppendAllText(logPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}\n\n");
     }
 }

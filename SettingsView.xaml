@@ -1,76 +1,65 @@
-<!--
-  ╔══════════════════════════════════════════════════════════╗
-  ║  Elstract Launcher — Views/SettingsToggleRow.xaml       ║
-  ║  Label + description + custom pink toggle switch        ║
-  ╚══════════════════════════════════════════════════════════╝
--->
-<UserControl x:Class="ElstractLauncher.Views.SettingsToggleRow"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             Margin="0,0,0,12">
-  <Border Background="{StaticResource BgCardBrush}"
-          BorderBrush="{StaticResource BorderSubtleBrush}"
-          BorderThickness="1" CornerRadius="10"
-          Padding="16,12">
-    <Grid>
-      <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="*"/>
-        <ColumnDefinition Width="16"/>
-        <ColumnDefinition Width="Auto"/>
-      </Grid.ColumnDefinitions>
+/*
+ * Elstract Launcher — Views/SettingsToggleRow.xaml.cs
+ * Custom toggle row — IsOn handled in code-behind to avoid binding errors.
+ */
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 
-      <StackPanel Grid.Column="0">
-        <TextBlock x:Name="LabelText"
-                   Foreground="{StaticResource TextPrimaryBrush}"
-                   FontSize="13" FontWeight="SemiBold"/>
-        <TextBlock x:Name="DescText"
-                   Foreground="{StaticResource TextMutedBrush}"
-                   FontSize="12" Margin="0,3,0,0"
-                   TextWrapping="Wrap"/>
-      </StackPanel>
+namespace ElstractLauncher.Views;
 
-      <!-- Custom toggle switch -->
-      <Border Grid.Column="2" Width="44" Height="24"
-              CornerRadius="12" Cursor="Hand"
-              VerticalAlignment="Center">
-        <Border.Style>
-          <Style TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource BorderSubtleBrush}"/>
-            <Style.Triggers>
-              <DataTrigger Binding="{Binding IsOn, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
-                <Setter Property="Background" Value="{StaticResource PinkPrimaryBrush}"/>
-              </DataTrigger>
-            </Style.Triggers>
-          </Style>
-        </Border.Style>
-        <Border.InputBindings>
-          <MouseBinding MouseAction="LeftClick"
-                        Command="{Binding ToggleCommand,
-                                  RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-        </Border.InputBindings>
+public partial class SettingsToggleRow : UserControl
+{
+    // ── Dependency Properties ─────────────────────────────────────
 
-        <!-- Knob -->
-        <Ellipse Width="18" Height="18" Fill="White"
-                 VerticalAlignment="Center">
-          <Ellipse.Style>
-            <Style TargetType="Ellipse">
-              <Setter Property="Margin" Value="3,0,0,0"/>
-              <Setter Property="HorizontalAlignment" Value="Left"/>
-              <Style.Triggers>
-                <DataTrigger Binding="{Binding IsOn,
-                    RelativeSource={RelativeSource AncestorType=UserControl}}"
-                             Value="True">
-                  <Setter Property="Margin" Value="0,0,3,0"/>
-                  <Setter Property="HorizontalAlignment" Value="Right"/>
-                </DataTrigger>
-              </Style.Triggers>
-            </Style>
-          </Ellipse.Style>
-          <Ellipse.Effect>
-            <DropShadowEffect Color="#000" BlurRadius="4" ShadowDepth="1" Opacity="0.4"/>
-          </Ellipse.Effect>
-        </Ellipse>
-      </Border>
-    </Grid>
-  </Border>
-</UserControl>
+    public static readonly DependencyProperty LabelProperty =
+        DependencyProperty.Register(nameof(Label), typeof(string), typeof(SettingsToggleRow),
+            new PropertyMetadata(string.Empty, (d, e) =>
+                ((SettingsToggleRow)d).LabelText.Text = (string)e.NewValue));
+
+    public static readonly DependencyProperty DescProperty =
+        DependencyProperty.Register(nameof(Desc), typeof(string), typeof(SettingsToggleRow),
+            new PropertyMetadata(string.Empty, (d, e) =>
+                ((SettingsToggleRow)d).DescText.Text = (string)e.NewValue));
+
+    public static readonly DependencyProperty IsOnProperty =
+        DependencyProperty.Register(nameof(IsOn), typeof(bool), typeof(SettingsToggleRow),
+            new FrameworkPropertyMetadata(false,
+                FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
+                OnIsOnChanged));
+
+    private static void OnIsOnChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        => ((SettingsToggleRow)d).UpdateVisual((bool)e.NewValue);
+
+    public string Label { get => (string)GetValue(LabelProperty);  set => SetValue(LabelProperty, value); }
+    public string Desc  { get => (string)GetValue(DescProperty);   set => SetValue(DescProperty, value); }
+    public bool   IsOn  { get => (bool)GetValue(IsOnProperty);     set => SetValue(IsOnProperty, value); }
+
+    // ── Pink / off colors ─────────────────────────────────────────
+    private static readonly SolidColorBrush _onBrush  = new(Color.FromRgb(0xFF, 0x1A, 0x7A));
+    private static readonly SolidColorBrush _offBrush = new(Color.FromRgb(0x2D, 0x20, 0x40));
+
+    public SettingsToggleRow()
+    {
+        InitializeComponent();
+    }
+
+    // ── Click handler ─────────────────────────────────────────────
+
+    private void ToggleBorder_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        IsOn = !IsOn;
+        e.Handled = true;
+    }
+
+    // ── Visual update ─────────────────────────────────────────────
+
+    private void UpdateVisual(bool isOn)
+    {
+        if (ToggleBorder == null || ToggleKnob == null) return;
+
+        ToggleBorder.Background       = isOn ? _onBrush : _offBrush;
+        ToggleKnob.HorizontalAlignment = isOn ? HorizontalAlignment.Right : HorizontalAlignment.Left;
+        ToggleKnob.Margin             = isOn ? new Thickness(0, 0, 3, 0) : new Thickness(3, 0, 0, 0);
+    }
+}

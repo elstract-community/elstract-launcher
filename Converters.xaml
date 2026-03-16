@@ -1,94 +1,87 @@
 /*
- * ╔══════════════════════════════════════════════════════════╗
- * ║  Elstract Launcher — Services/UpdateService.cs          ║
- * ║  Queries the GitHub Releases API to detect newer        ║
- * ║  versions of the launcher and provide download links.   ║
- * ╚══════════════════════════════════════════════════════════╝
+ * Elstract Launcher — Services/SteamService.cs
+ * Fetches game data from the public Steam Store API. No API key required.
  */
-
+using System.IO;
 using System.Net.Http;
-using System.Net.Http.Headers;
+using ElstractLauncher.Models;
 using Newtonsoft.Json.Linq;
 
 namespace ElstractLauncher.Services;
 
-public record GitHubRelease(
-    string TagName,
-    string Name,
-    string Body,
-    string HtmlUrl,
-    DateTime PublishedAt,
-    bool IsPreRelease);
-
-public class UpdateService
+public class SteamService
 {
-    private readonly string _currentVersion;
-    private readonly string _repo;          // e.g. "elstract-community/elstract-launcher"
     private readonly HttpClient _http;
 
-    public UpdateService(string currentVersion, string repo)
+    public SteamService()
     {
-        _currentVersion = currentVersion;
-        _repo           = repo;
-        _http           = new HttpClient();
-        _http.DefaultRequestHeaders.UserAgent
-            .Add(new ProductInfoHeaderValue("ElstractLauncher", currentVersion));
+        _http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+        _http.DefaultRequestHeaders.Add("User-Agent", "ElstractLauncher/1.0");
     }
 
-    // ── GitHub API ────────────────────────────────────────────────────
-
-    /// <summary>Fetches the latest release from GitHub.</summary>
-    public async Task<GitHubRelease?> GetLatestReleaseAsync()
+    public async Task<List<SteamSearchResult>> SearchGamesAsync(string query)
     {
+        if (string.IsNullOrWhiteSpace(query)) return new();
         try
         {
-            var url  = $"https://api.github.com/repos/{_repo}/releases/latest";
+            var url  = $"https://store.steampowered.com/api/storesearch?term={Uri.EscapeDataString(query)}&l=english&cc=US";
             var json = await _http.GetStringAsync(url);
-            return ParseRelease(JObject.Parse(json));
+            var obj  = JObject.Parse(json);
+            var items = obj["items"] as JArray;
+            if (items is null) return new();
+            return items
+                .Select(i => new SteamSearchResult { AppId = (int)(i["id"] ?? 0), Name = (string?)(i["name"] ?? "") ?? "" })
+                .Where(r => r.AppId > 0 && !string.IsNullOrEmpty(r.Name))
+                .Take(15).ToList();
         }
-        catch { return null; }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Steam] Search error: {ex.Message}"); return new(); }
     }
 
-    /// <summary>Fetches all releases (up to 10) from GitHub.</summary>
-    public async Task<List<GitHubRelease>> GetAllReleasesAsync()
+    public async Task<SteamAppDetails?> GetAppDetailsAsync(int appId)
     {
         try
         {
-            var url  = $"https://api.github.com/repos/{_repo}/releases?per_page=10";
+            var url  = $"https://store.steampowered.com/api/appdetails?appids={appId}&cc=US&l=english";
             var json = await _http.GetStringAsync(url);
-            var arr  = JArray.Parse(json);
-            return arr.Select(r => ParseRelease((JObject)r))
-                      .Where(r => r is not null)
-                      .Cast<GitHubRelease>()
-                      .ToList();
+            var root = JObject.Parse(json);
+            var data = root[appId.ToString()]?["data"];
+            if (data is null) return null;
+
+            var genresList = data["genres"]?
+                .Select(g => (string?)g["description"])
+                .Where(g => g != null).ToList() ?? new();
+
+            DateTime? releaseDate = null;
+            var relDateStr = (string?)data["release_date"]?["date"];
+            if (!string.IsNullOrEmpty(relDateStr) && DateTime.TryParse(relDateStr, out var pd))
+                releaseDate = pd;
+
+            return new SteamAppDetails
+            {
+                AppId          = appId,
+                Name           = (string?)data["name"] ?? string.Empty,
+                Developer      = data["developers"]?.FirstOrDefault()?.Value<string>(),
+                Publisher      = data["publishers"]?.FirstOrDefault()?.Value<string>(),
+                ShortDesc      = (string?)data["short_description"],
+                Genres         = string.Join(", ", genresList),
+                ReleaseDate    = releaseDate,
+                HeaderImageUrl = (string?)data["header_image"]
+            };
         }
-        catch { return new(); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Steam] Details error: {ex.Message}"); return null; }
     }
 
-    /// <summary>Returns true if <paramref name="release"/> is newer than the current version.</summary>
-    public bool IsNewer(GitHubRelease release)
-    {
-        var tag     = release.TagName.TrimStart('v');
-        var current = _currentVersion.TrimStart('v');
-
-        return Version.TryParse(tag, out var remoteVer) &&
-               Version.TryParse(current, out var localVer) &&
-               remoteVer > localVer;
-    }
-
-    // ── Helpers ───────────────────────────────────────────────────────
-
-    private static GitHubRelease? ParseRelease(JObject o)
+    public async Task<string?> DownloadIconAsync(int appId, string cacheFolder)
     {
         try
         {
-            return new GitHubRelease(
-                TagName:     (string?)o["tag_name"]     ?? "",
-                Name:        (string?)o["name"]         ?? "",
-                Body:        (string?)o["body"]         ?? "",
-                HtmlUrl:     (string?)o["html_url"]     ?? "",
-                PublishedAt: (DateTime?)o["published_at"] ?? DateTime.MinValue,
-                IsPreRelease:(bool?)o["prerelease"]     ?? false);
+            Directory.CreateDirectory(cacheFolder);
+            var localPath = Path.Combine(cacheFolder, $"{appId}_icon.jpg");
+            if (File.Exists(localPath)) return localPath;
+            var bytes = await _http.GetByteArrayAsync(
+                $"https://cdn.akamai.steamstatic.com/steam/apps/{appId}/capsule_231x87.jpg");
+            await File.WriteAllBytesAsync(localPath, bytes);
+            return localPath;
         }
         catch { return null; }
     }

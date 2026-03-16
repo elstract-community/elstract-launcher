@@ -1,35 +1,52 @@
 /*
- * ╔══════════════════════════════════════════════════════════╗
- * ║  Elstract Launcher — Views/FeatureRow.xaml.cs           ║
- * ║  Dependency properties: Icon, Title, Desc               ║
- * ╚══════════════════════════════════════════════════════════╝
+ * Elstract Launcher — Views/MainWindow.xaml.cs
+ * Code-behind: custom chrome, window controls.
+ *
+ * DataContext назначается здесь после того, как App.OnStartup
+ * уже инициализировал все сервисы (Library, Settings, Discord).
  */
-
 using System.Windows;
-using System.Windows.Controls;
+using System.Windows.Input;
+using ElstractLauncher.ViewModels;
 
 namespace ElstractLauncher.Views;
 
-public partial class FeatureRow : UserControl
+public partial class MainWindow : Window
 {
-    public static readonly DependencyProperty IconProperty =
-        DependencyProperty.Register(nameof(Icon), typeof(string), typeof(FeatureRow),
-            new PropertyMetadata(string.Empty, (d, e) =>
-                ((FeatureRow)d).IconText.Text = (string)e.NewValue));
+    public MainWindow()
+    {
+        InitializeComponent();
 
-    public static readonly DependencyProperty TitleProperty =
-        DependencyProperty.Register(nameof(Title), typeof(string), typeof(FeatureRow),
-            new PropertyMetadata(string.Empty, (d, e) =>
-                ((FeatureRow)d).TitleText.Text = (string)e.NewValue));
+        // Назначаем DataContext только здесь — к этому моменту
+        // App.OnStartup уже отработал и все сервисы готовы.
+        DataContext = new MainWindowViewModel();
+    }
 
-    public static readonly DependencyProperty DescProperty =
-        DependencyProperty.Register(nameof(Desc), typeof(string), typeof(FeatureRow),
-            new PropertyMetadata(string.Empty, (d, e) =>
-                ((FeatureRow)d).DescText.Text = (string)e.NewValue));
+    // ── Window chrome controls ─────────────────────────────────────
 
-    public string Icon  { get => (string)GetValue(IconProperty);  set => SetValue(IconProperty, value); }
-    public string Title { get => (string)GetValue(TitleProperty); set => SetValue(TitleProperty, value); }
-    public string Desc  { get => (string)GetValue(DescProperty);  set => SetValue(DescProperty, value); }
+    private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount == 2)
+            ToggleMaximize();
+        else
+            DragMove();
+    }
 
-    public FeatureRow() => InitializeComponent();
+    private void MinimizeButton_Click(object sender, RoutedEventArgs e)
+        => WindowState = WindowState.Minimized;
+
+    private void MaximizeButton_Click(object sender, RoutedEventArgs e)
+        => ToggleMaximize();
+
+    private void CloseButton_Click(object sender, RoutedEventArgs e)
+        => Close();
+
+    private void ToggleMaximize()
+    {
+        WindowState = WindowState == WindowState.Maximized
+            ? WindowState.Normal
+            : WindowState.Maximized;
+
+        MaxIcon.Text = WindowState == WindowState.Maximized ? "❐" : "□";
+    }
 }

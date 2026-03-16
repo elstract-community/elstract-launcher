@@ -1,149 +1,72 @@
 /*
- * ╔══════════════════════════════════════════════════════════╗
- * ║  Elstract Launcher — Services/SteamService.cs           ║
- * ║  Fetches game data from the public Steam Store API.     ║
- * ║  No API key required — uses freely available endpoints. ║
- * ║  Endpoints used:                                        ║
- * ║  • https://store.steampowered.com/api/storesearch       ║
- * ║  • https://store.steampowered.com/api/appdetails        ║
- * ╚══════════════════════════════════════════════════════════╝
+ * Elstract Launcher — Services/DiscordService.cs
+ * Discord Rich Presence integration.
  */
-
-using System.Net.Http;
+using DiscordRPC;
+using DiscordRPC.Logging;
 using ElstractLauncher.Models;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace ElstractLauncher.Services;
 
-/// <summary>
-/// All HTTP requests to Steam are read-only, no auth tokens needed.
-/// The launcher does NOT communicate with any private server.
-/// </summary>
-public class SteamService
+public class DiscordService : IDisposable
 {
-    private readonly HttpClient _http;
+    // TODO: Replace with your own Discord Application Client ID
+    // Register at: https://discord.com/developers/applications
+    private const string ClientId = "1234567890123456789";
 
-    public SteamService()
+    private DiscordRpcClient? _client;
+    private bool _initialized;
+
+    public void Initialize()
     {
-        _http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-        _http.DefaultRequestHeaders.Add("User-Agent", "ElstractLauncher/1.0");
-    }
-
-    // ── Search ────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Searches the Steam store for games matching <paramref name="query"/>.
-    /// Returns up to 15 results.
-    /// </summary>
-    public async Task<List<SteamSearchResult>> SearchGamesAsync(string query)
-    {
-        if (string.IsNullOrWhiteSpace(query))
-            return new();
-
         try
         {
-            var url = $"https://store.steampowered.com/api/storesearch" +
-                      $"?term={Uri.EscapeDataString(query)}&l=english&cc=US";
-
-            var json = await _http.GetStringAsync(url);
-            var obj  = JObject.Parse(json);
-            var items = obj["items"] as JArray;
-
-            if (items is null) return new();
-
-            return items
-                .Select(i => new SteamSearchResult
-                {
-                    AppId = (int)(i["id"] ?? 0),
-                    Name  = (string?)(i["name"] ?? "") ?? ""
-                })
-                .Where(r => r.AppId > 0 && !string.IsNullOrEmpty(r.Name))
-                .Take(15)
-                .ToList();
+            _client = new DiscordRpcClient(ClientId) { Logger = new NullLogger() };
+            _client.OnReady += (_, e) => System.Diagnostics.Debug.WriteLine($"[Discord] Connected as {e.User.Username}");
+            _client.OnError += (_, e) => System.Diagnostics.Debug.WriteLine($"[Discord] Error: {e.Message}");
+            _client.Initialize();
+            _initialized = true;
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[Steam] Search error: {ex.Message}");
-            return new();
+            System.Diagnostics.Debug.WriteLine($"[Discord] Init failed: {ex.Message}");
+            _initialized = false;
         }
     }
 
-    // ── App details ───────────────────────────────────────────────────
-
-    /// <summary>
-    /// Fetches detailed metadata for a specific Steam App ID.
-    /// Returns null on failure or if the app is not a game.
-    /// </summary>
-    public async Task<SteamAppDetails?> GetAppDetailsAsync(int appId)
+    public void SetIdlePresence()
     {
-        try
+        if (!_initialized || _client is null) return;
+        _client.SetPresence(new RichPresence
         {
-            var url  = $"https://store.steampowered.com/api/appdetails?appids={appId}&cc=US&l=english";
-            var json = await _http.GetStringAsync(url);
-            var root = JObject.Parse(json);
-            var data = root[appId.ToString()]?["data"];
-
-            if (data is null) return null;
-            if ((string?)data["type"] is not ("game" or "dlc")) return null;
-
-            // Parse genres
-            var genresList = data["genres"]?
-                .Select(g => (string?)g["description"])
-                .Where(g => g != null)
-                .ToList() ?? new();
-
-            // Parse release date
-            DateTime? releaseDate = null;
-            var relDateStr = (string?)data["release_date"]?["date"];
-            if (!string.IsNullOrEmpty(relDateStr) &&
-                DateTime.TryParse(relDateStr, out var parsedDate))
-            {
-                releaseDate = parsedDate;
-            }
-
-            return new SteamAppDetails
-            {
-                AppId          = appId,
-                Name           = (string?)data["name"] ?? string.Empty,
-                Developer      = data["developers"]?.FirstOrDefault()?.Value<string>(),
-                Publisher      = data["publishers"]?.FirstOrDefault()?.Value<string>(),
-                ShortDesc      = (string?)data["short_description"],
-                Genres         = string.Join(", ", genresList),
-                ReleaseDate    = releaseDate,
-                HeaderImageUrl = (string?)data["header_image"]
-            };
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[Steam] Details error: {ex.Message}");
-            return null;
-        }
+            Details = "Browsing Library",
+            State   = "Elstract Launcher",
+            Assets  = new Assets { LargeImageKey = "elstract_logo", LargeImageText = "Elstract Launcher" },
+            Timestamps = Timestamps.Now
+        });
     }
 
-    // ── Icon download ─────────────────────────────────────────────────
-
-    /// <summary>
-    /// Downloads the Steam capsule/header image to a local cache path.
-    /// Returns the local file path or null on failure.
-    /// </summary>
-    public async Task<string?> DownloadIconAsync(int appId, string cacheFolder)
+    public void SetGamePresence(Game game)
     {
-        try
+        if (!_initialized || _client is null) return;
+        _client.SetPresence(new RichPresence
         {
-            Directory.CreateDirectory(cacheFolder);
-            var localPath = Path.Combine(cacheFolder, $"{appId}_icon.jpg");
+            Details = $"Playing {game.Name}",
+            State   = "via Elstract Launcher",
+            Assets  = new Assets
+            {
+                LargeImageKey  = game.SteamAppId > 0 ? game.SteamAppId.ToString() : "elstract_logo",
+                LargeImageText = game.Name,
+                SmallImageKey  = "elstract_logo",
+                SmallImageText = "Elstract Launcher"
+            },
+            Timestamps = Timestamps.Now
+        });
+    }
 
-            if (File.Exists(localPath)) return localPath; // already cached
-
-            var url   = $"https://cdn.akamai.steamstatic.com/steam/apps/{appId}/capsule_231x87.jpg";
-            var bytes = await _http.GetByteArrayAsync(url);
-            await File.WriteAllBytesAsync(localPath, bytes);
-            return localPath;
-        }
-        catch
-        {
-            return null;
-        }
+    public void Dispose()
+    {
+        _client?.ClearPresence();
+        _client?.Dispose();
     }
 }

@@ -1,339 +1,104 @@
 <!--
   ╔══════════════════════════════════════════════════════════╗
-  ║  Elstract Launcher — Themes/ControlStyles.xaml          ║
-  ║  Reusable control styles: buttons, inputs, scrollbars,  ║
-  ║  list boxes, tooltips, progress bars                    ║
+  ║  Elstract Launcher — Themes/ElstractTheme.xaml          ║
+  ║  Core color palette: dark backgrounds + vivid pink      ║
   ╚══════════════════════════════════════════════════════════╝
 -->
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-  <!-- ════════════════════════════════════════════════════════
-       PRIMARY BUTTON — pink gradient with glow on hover
-       ════════════════════════════════════════════════════════ -->
-  <Style x:Key="PrimaryButton" TargetType="Button">
-    <Setter Property="Background"   Value="{StaticResource PinkGradient}"/>
-    <Setter Property="Foreground"   Value="White"/>
-    <Setter Property="FontFamily"   Value="{StaticResource FontDisplay}"/>
-    <Setter Property="FontSize"     Value="13"/>
-    <Setter Property="FontWeight"   Value="SemiBold"/>
-    <Setter Property="Padding"      Value="20,10"/>
-    <Setter Property="Cursor"       Value="Hand"/>
-    <Setter Property="BorderThickness" Value="0"/>
-    <Setter Property="Template">
-      <Setter.Value>
-        <ControlTemplate TargetType="Button">
-          <Border x:Name="Root"
-                  Background="{TemplateBinding Background}"
-                  CornerRadius="8"
-                  Padding="{TemplateBinding Padding}">
-            <Border.Effect>
-              <DropShadowEffect x:Name="Glow" Color="#FF1A7A"
-                                BlurRadius="0" ShadowDepth="0" Opacity="0"/>
-            </Border.Effect>
-            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-          </Border>
-          <ControlTemplate.Triggers>
-            <Trigger Property="IsMouseOver" Value="True">
-              <Trigger.EnterActions>
-                <BeginStoryboard>
-                  <Storyboard>
-                    <DoubleAnimation Storyboard.TargetName="Glow"
-                                     Storyboard.TargetProperty="BlurRadius"
-                                     To="18" Duration="0:0:0.2"/>
-                    <DoubleAnimation Storyboard.TargetName="Glow"
-                                     Storyboard.TargetProperty="Opacity"
-                                     To="0.7" Duration="0:0:0.2"/>
-                  </Storyboard>
-                </BeginStoryboard>
-              </Trigger.EnterActions>
-              <Trigger.ExitActions>
-                <BeginStoryboard>
-                  <Storyboard>
-                    <DoubleAnimation Storyboard.TargetName="Glow"
-                                     Storyboard.TargetProperty="BlurRadius"
-                                     To="0" Duration="0:0:0.2"/>
-                    <DoubleAnimation Storyboard.TargetName="Glow"
-                                     Storyboard.TargetProperty="Opacity"
-                                     To="0" Duration="0:0:0.2"/>
-                  </Storyboard>
-                </BeginStoryboard>
-              </Trigger.ExitActions>
-            </Trigger>
-            <Trigger Property="IsPressed" Value="True">
-              <Setter TargetName="Root" Property="Opacity" Value="0.85"/>
-            </Trigger>
-            <Trigger Property="IsEnabled" Value="False">
-              <Setter Property="Opacity" Value="0.4"/>
-            </Trigger>
-          </ControlTemplate.Triggers>
-        </ControlTemplate>
-      </Setter.Value>
-    </Setter>
-  </Style>
+  <!-- ── Primary palette ──────────────────────────────────────────── -->
+  <Color x:Key="PinkPrimary">#FF1A7A</Color>
+  <Color x:Key="PinkLight">#FF5FA3</Color>
+  <Color x:Key="PinkDark">#C4004F</Color>
+  <Color x:Key="PinkGlow">#FF1A7A44</Color>   <!-- semi-transparent for glows -->
 
-  <!-- ════════════════════════════════════════════════════════
-       SECONDARY BUTTON — outlined border, no fill
-       ════════════════════════════════════════════════════════ -->
-  <Style x:Key="SecondaryButton" TargetType="Button">
-    <Setter Property="Background"       Value="Transparent"/>
-    <Setter Property="Foreground"       Value="{StaticResource PinkLightBrush}"/>
-    <Setter Property="BorderBrush"      Value="{StaticResource PinkPrimaryBrush}"/>
-    <Setter Property="BorderThickness"  Value="1"/>
-    <Setter Property="FontFamily"       Value="{StaticResource FontDisplay}"/>
-    <Setter Property="FontSize"         Value="13"/>
-    <Setter Property="Padding"          Value="18,9"/>
-    <Setter Property="Cursor"           Value="Hand"/>
-    <Setter Property="Template">
-      <Setter.Value>
-        <ControlTemplate TargetType="Button">
-          <Border x:Name="Root"
-                  Background="{TemplateBinding Background}"
-                  BorderBrush="{TemplateBinding BorderBrush}"
-                  BorderThickness="{TemplateBinding BorderThickness}"
-                  CornerRadius="8"
-                  Padding="{TemplateBinding Padding}">
-            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-          </Border>
-          <ControlTemplate.Triggers>
-            <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Root" Property="Background" Value="#FF1A7A22"/>
-            </Trigger>
-            <Trigger Property="IsPressed" Value="True">
-              <Setter TargetName="Root" Property="Background" Value="#FF1A7A44"/>
-            </Trigger>
-          </ControlTemplate.Triggers>
-        </ControlTemplate>
-      </Setter.Value>
-    </Setter>
-  </Style>
+  <!-- ── Background layers ─────────────────────────────────────────── -->
+  <Color x:Key="BgDeep">#0D0A10</Color>        <!-- deepest background -->
+  <Color x:Key="BgBase">#130F18</Color>        <!-- main window bg      -->
+  <Color x:Key="BgCard">#1C1625</Color>        <!-- cards / panels      -->
+  <Color x:Key="BgCardHover">#241D2F</Color>   <!-- card on hover       -->
+  <Color x:Key="BgSidebar">#160F1E</Color>     <!-- left sidebar        -->
+  <Color x:Key="BgInput">#221A2E</Color>       <!-- inputs              -->
+  <Color x:Key="BgOverlay">#0D0A10CC</Color>   <!-- modal overlay       -->
 
-  <!-- ════════════════════════════════════════════════════════
-       ICON BUTTON — transparent, icon only, subtle hover
-       ════════════════════════════════════════════════════════ -->
-  <Style x:Key="IconButton" TargetType="Button">
-    <Setter Property="Background"    Value="Transparent"/>
-    <Setter Property="Foreground"    Value="{StaticResource TextSecondaryBrush}"/>
-    <Setter Property="BorderThickness" Value="0"/>
-    <Setter Property="Padding"       Value="8"/>
-    <Setter Property="Cursor"        Value="Hand"/>
-    <Setter Property="Template">
-      <Setter.Value>
-        <ControlTemplate TargetType="Button">
-          <Border x:Name="Root" Background="{TemplateBinding Background}"
-                  CornerRadius="6" Padding="{TemplateBinding Padding}">
-            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-          </Border>
-          <ControlTemplate.Triggers>
-            <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Root" Property="Background" Value="#FF1A7A22"/>
-              <Setter Property="Foreground" Value="{StaticResource PinkLightBrush}"/>
-            </Trigger>
-            <Trigger Property="IsPressed" Value="True">
-              <Setter TargetName="Root" Property="Background" Value="#FF1A7A44"/>
-            </Trigger>
-          </ControlTemplate.Triggers>
-        </ControlTemplate>
-      </Setter.Value>
-    </Setter>
-  </Style>
+  <!-- ── Text colors ───────────────────────────────────────────────── -->
+  <Color x:Key="TextPrimary">#F0ECF8</Color>
+  <Color x:Key="TextSecondary">#A895C4</Color>
+  <Color x:Key="TextMuted">#5E4D7A</Color>
+  <Color x:Key="TextAccent">#FF1A7A</Color>
 
-  <!-- ════════════════════════════════════════════════════════
-       SIDEBAR NAV BUTTON — full-width, left-aligned
-       ════════════════════════════════════════════════════════ -->
-  <Style x:Key="NavButton" TargetType="Button">
-    <Setter Property="Background"    Value="Transparent"/>
-    <Setter Property="Foreground"    Value="{StaticResource TextSecondaryBrush}"/>
-    <Setter Property="BorderThickness" Value="0"/>
-    <Setter Property="Padding"       Value="16,12"/>
-    <Setter Property="HorizontalContentAlignment" Value="Left"/>
-    <Setter Property="FontFamily"    Value="{StaticResource FontPrimary}"/>
-    <Setter Property="FontSize"      Value="14"/>
-    <Setter Property="Cursor"        Value="Hand"/>
-    <Setter Property="Template">
-      <Setter.Value>
-        <ControlTemplate TargetType="Button">
-          <Border x:Name="Root" Background="{TemplateBinding Background}"
-                  CornerRadius="8" Padding="{TemplateBinding Padding}">
-            <Border x:Name="LeftBar" BorderThickness="0"
-                    Padding="0">
-              <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                VerticalAlignment="Center"/>
-            </Border>
-          </Border>
-          <ControlTemplate.Triggers>
-            <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Root" Property="Background" Value="#FF1A7A1A"/>
-              <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
-            </Trigger>
-          </ControlTemplate.Triggers>
-        </ControlTemplate>
-      </Setter.Value>
-    </Setter>
-  </Style>
+  <!-- ── Border colors ─────────────────────────────────────────────── -->
+  <Color x:Key="BorderSubtle">#2D2040</Color>
+  <Color x:Key="BorderActive">#FF1A7A88</Color>
 
-  <!-- ════════════════════════════════════════════════════════
-       TEXT INPUT
-       ════════════════════════════════════════════════════════ -->
-  <Style x:Key="ElstractTextBox" TargetType="TextBox">
-    <Setter Property="Background"       Value="{StaticResource BgInputBrush}"/>
-    <Setter Property="Foreground"       Value="{StaticResource TextPrimaryBrush}"/>
-    <Setter Property="CaretBrush"       Value="{StaticResource PinkPrimaryBrush}"/>
-    <Setter Property="BorderBrush"      Value="{StaticResource BorderSubtleBrush}"/>
-    <Setter Property="BorderThickness"  Value="1"/>
-    <Setter Property="Padding"          Value="12,8"/>
-    <Setter Property="FontFamily"       Value="{StaticResource FontPrimary}"/>
-    <Setter Property="FontSize"         Value="13"/>
-    <Setter Property="Template">
-      <Setter.Value>
-        <ControlTemplate TargetType="TextBox">
-          <Border x:Name="Root"
-                  Background="{TemplateBinding Background}"
-                  BorderBrush="{TemplateBinding BorderBrush}"
-                  BorderThickness="{TemplateBinding BorderThickness}"
-                  CornerRadius="8">
-            <ScrollViewer x:Name="PART_ContentHost"
-                          Padding="{TemplateBinding Padding}"
-                          VerticalAlignment="Center"/>
-          </Border>
-          <ControlTemplate.Triggers>
-            <Trigger Property="IsFocused" Value="True">
-              <Setter TargetName="Root" Property="BorderBrush"
-                      Value="{StaticResource PinkPrimaryBrush}"/>
-            </Trigger>
-          </ControlTemplate.Triggers>
-        </ControlTemplate>
-      </Setter.Value>
-    </Setter>
-  </Style>
+  <!-- ── Status colors ─────────────────────────────────────────────── -->
+  <Color x:Key="StatusGreen">#39D98A</Color>
+  <Color x:Key="StatusRed">#FF4757</Color>
+  <Color x:Key="StatusYellow">#FFC312</Color>
 
-  <!-- ════════════════════════════════════════════════════════
-       SCROLLBAR — thin, pink accent
-       ════════════════════════════════════════════════════════ -->
-  <Style x:Key="ElstractScrollBar" TargetType="ScrollBar">
-    <Setter Property="Background" Value="Transparent"/>
-    <Setter Property="Width" Value="6"/>
-    <Setter Property="Template">
-      <Setter.Value>
-        <ControlTemplate TargetType="ScrollBar">
-          <Grid>
-            <Track x:Name="PART_Track" IsDirectionReversed="True">
-              <Track.Thumb>
-                <Thumb>
-                  <Thumb.Template>
-                    <ControlTemplate TargetType="Thumb">
-                      <Border Background="{StaticResource PinkPrimaryBrush}"
-                              CornerRadius="3" Opacity="0.5"/>
-                    </ControlTemplate>
-                  </Thumb.Template>
-                </Thumb>
-              </Track.Thumb>
-            </Track>
-          </Grid>
-        </ControlTemplate>
-      </Setter.Value>
-    </Setter>
-  </Style>
+  <!-- ── SolidColorBrushes ─────────────────────────────────────────── -->
+  <SolidColorBrush x:Key="PinkPrimaryBrush"    Color="{StaticResource PinkPrimary}"/>
+  <SolidColorBrush x:Key="PinkLightBrush"      Color="{StaticResource PinkLight}"/>
+  <SolidColorBrush x:Key="PinkDarkBrush"       Color="{StaticResource PinkDark}"/>
 
-  <!-- ════════════════════════════════════════════════════════
-       SCROLL VIEWER using custom scrollbar
-       ════════════════════════════════════════════════════════ -->
-  <Style x:Key="ElstractScrollViewer" TargetType="ScrollViewer">
-    <Setter Property="Template">
-      <Setter.Value>
-        <ControlTemplate TargetType="ScrollViewer">
-          <Grid>
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="*"/>
-              <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <ScrollContentPresenter Grid.Column="0"/>
-            <ScrollBar Grid.Column="1"
-                       x:Name="PART_VerticalScrollBar"
-                       Style="{StaticResource ElstractScrollBar}"
-                       Value="{TemplateBinding VerticalOffset}"
-                       Maximum="{TemplateBinding ScrollableHeight}"
-                       ViewportSize="{TemplateBinding ViewportHeight}"
-                       Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"/>
-          </Grid>
-        </ControlTemplate>
-      </Setter.Value>
-    </Setter>
-  </Style>
+  <SolidColorBrush x:Key="BgDeepBrush"         Color="{StaticResource BgDeep}"/>
+  <SolidColorBrush x:Key="BgBaseBrush"         Color="{StaticResource BgBase}"/>
+  <SolidColorBrush x:Key="BgCardBrush"         Color="{StaticResource BgCard}"/>
+  <SolidColorBrush x:Key="BgCardHoverBrush"    Color="{StaticResource BgCardHover}"/>
+  <SolidColorBrush x:Key="BgSidebarBrush"      Color="{StaticResource BgSidebar}"/>
+  <SolidColorBrush x:Key="BgInputBrush"        Color="{StaticResource BgInput}"/>
 
-  <!-- ════════════════════════════════════════════════════════
-       PROGRESS BAR
-       ════════════════════════════════════════════════════════ -->
-  <Style x:Key="ElstractProgressBar" TargetType="ProgressBar">
-    <Setter Property="Background" Value="{StaticResource BorderSubtleBrush}"/>
-    <Setter Property="Foreground" Value="{StaticResource PinkPrimaryBrush}"/>
-    <Setter Property="Height"     Value="4"/>
-    <Setter Property="Template">
-      <Setter.Value>
-        <ControlTemplate TargetType="ProgressBar">
-          <Border Background="{TemplateBinding Background}" CornerRadius="2">
-            <Border x:Name="PART_Track">
-              <Border x:Name="PART_Indicator"
-                      HorizontalAlignment="Left"
-                      Background="{TemplateBinding Foreground}"
-                      CornerRadius="2">
-                <Border.Effect>
-                  <DropShadowEffect Color="#FF1A7A" BlurRadius="6" ShadowDepth="0" Opacity="0.8"/>
-                </Border.Effect>
-              </Border>
-            </Border>
-          </Border>
-        </ControlTemplate>
-      </Setter.Value>
-    </Setter>
-  </Style>
+  <SolidColorBrush x:Key="TextPrimaryBrush"    Color="{StaticResource TextPrimary}"/>
+  <SolidColorBrush x:Key="TextSecondaryBrush"  Color="{StaticResource TextSecondary}"/>
+  <SolidColorBrush x:Key="TextMutedBrush"      Color="{StaticResource TextMuted}"/>
+  <SolidColorBrush x:Key="TextAccentBrush"     Color="{StaticResource TextAccent}"/>
 
-  <!-- ════════════════════════════════════════════════════════
-       TOOLTIP
-       ════════════════════════════════════════════════════════ -->
-  <Style TargetType="ToolTip">
-    <Setter Property="Background"      Value="{StaticResource BgCardBrush}"/>
-    <Setter Property="Foreground"      Value="{StaticResource TextPrimaryBrush}"/>
-    <Setter Property="BorderBrush"     Value="{StaticResource BorderSubtleBrush}"/>
-    <Setter Property="BorderThickness" Value="1"/>
-    <Setter Property="Padding"         Value="8,5"/>
-    <Setter Property="FontFamily"      Value="{StaticResource FontPrimary}"/>
-    <Setter Property="FontSize"        Value="12"/>
-    <Setter Property="Template">
-      <Setter.Value>
-        <ControlTemplate TargetType="ToolTip">
-          <Border Background="{TemplateBinding Background}"
-                  BorderBrush="{TemplateBinding BorderBrush}"
-                  BorderThickness="{TemplateBinding BorderThickness}"
-                  CornerRadius="6" Padding="{TemplateBinding Padding}">
-            <ContentPresenter/>
-          </Border>
-        </ControlTemplate>
-      </Setter.Value>
-    </Setter>
-  </Style>
+  <SolidColorBrush x:Key="BorderSubtleBrush"   Color="{StaticResource BorderSubtle}"/>
+  <SolidColorBrush x:Key="BorderActiveBrush"   Color="{StaticResource BorderActive}"/>
 
-  <!-- ════════════════════════════════════════════════════════
-       COMBO BOX
-       ════════════════════════════════════════════════════════ -->
-  <Style x:Key="ElstractComboBox" TargetType="ComboBox">
-    <Setter Property="Background"      Value="{StaticResource BgInputBrush}"/>
-    <Setter Property="Foreground"      Value="{StaticResource TextPrimaryBrush}"/>
-    <Setter Property="BorderBrush"     Value="{StaticResource BorderSubtleBrush}"/>
-    <Setter Property="BorderThickness" Value="1"/>
-    <Setter Property="Padding"         Value="12,8"/>
-    <Setter Property="FontFamily"      Value="{StaticResource FontPrimary}"/>
-    <Setter Property="FontSize"        Value="13"/>
-  </Style>
+  <SolidColorBrush x:Key="StatusGreenBrush"    Color="{StaticResource StatusGreen}"/>
+  <SolidColorBrush x:Key="StatusRedBrush"      Color="{StaticResource StatusRed}"/>
+  <SolidColorBrush x:Key="StatusYellowBrush"   Color="{StaticResource StatusYellow}"/>
 
-  <!-- ════════════════════════════════════════════════════════
-       CHECKBOX
-       ════════════════════════════════════════════════════════ -->
-  <Style x:Key="ElstractCheckBox" TargetType="CheckBox">
-    <Setter Property="Foreground"  Value="{StaticResource TextPrimaryBrush}"/>
-    <Setter Property="FontFamily"  Value="{StaticResource FontPrimary}"/>
-    <Setter Property="FontSize"    Value="13"/>
-    <Setter Property="Cursor"      Value="Hand"/>
-  </Style>
+  <!-- ── Gradient brushes ──────────────────────────────────────────── -->
+  <LinearGradientBrush x:Key="PinkGradient" StartPoint="0,0" EndPoint="1,1">
+    <GradientStop Color="#FF1A7A" Offset="0"/>
+    <GradientStop Color="#C4004F" Offset="1"/>
+  </LinearGradientBrush>
+
+  <LinearGradientBrush x:Key="PinkGradientSubtle" StartPoint="0,0" EndPoint="1,1">
+    <GradientStop Color="#FF1A7A22" Offset="0"/>
+    <GradientStop Color="#C4004F11" Offset="1"/>
+  </LinearGradientBrush>
+
+  <LinearGradientBrush x:Key="CardGradient" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Color="#1C1625" Offset="0"/>
+    <GradientStop Color="#160F1E" Offset="1"/>
+  </LinearGradientBrush>
+
+  <LinearGradientBrush x:Key="SidebarGradient" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Color="#160F1E" Offset="0"/>
+    <GradientStop Color="#0D0A10" Offset="1"/>
+  </LinearGradientBrush>
+
+  <!-- ── Drop shadow effects ───────────────────────────────────────── -->
+  <DropShadowEffect x:Key="PinkGlowEffect"
+                    Color="#FF1A7A" BlurRadius="20" ShadowDepth="0" Opacity="0.6"/>
+  <DropShadowEffect x:Key="CardShadow"
+                    Color="#000000" BlurRadius="12" ShadowDepth="2" Opacity="0.5"/>
+  <DropShadowEffect x:Key="ButtonGlow"
+                    Color="#FF1A7A" BlurRadius="14" ShadowDepth="0" Opacity="0.4"/>
+
+  <!-- ── Corner radii ───────────────────────────────────────────────── -->
+  <CornerRadius x:Key="RadiusSm">6</CornerRadius>
+  <CornerRadius x:Key="RadiusMd">10</CornerRadius>
+  <CornerRadius x:Key="RadiusLg">16</CornerRadius>
+  <CornerRadius x:Key="RadiusXl">20</CornerRadius>
+
+  <!-- ── Typography ─────────────────────────────────────────────────── -->
+  <FontFamily x:Key="FontPrimary">Segoe UI, Arial</FontFamily>
+  <FontFamily x:Key="FontDisplay">Segoe UI Semibold, Arial Bold</FontFamily>
+  <FontFamily x:Key="FontMono">Consolas, Courier New</FontFamily>
 
 </ResourceDictionary>
