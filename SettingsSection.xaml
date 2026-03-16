@@ -1,0 +1,221 @@
+<!--
+  ╔══════════════════════════════════════════════════════════╗
+  ║  Elstract Launcher — Views/MainWindow.xaml               ║
+  ║  Main application shell:                                ║
+  ║  • Custom chrome-less title bar with window controls    ║
+  ║  • Left sidebar navigation                              ║
+  ║  • Right content area (page host)                       ║
+  ╚══════════════════════════════════════════════════════════╝
+-->
+<Window x:Class="ElstractLauncher.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:ElstractLauncher.ViewModels"
+        xmlns:views="clr-namespace:ElstractLauncher.Views"
+        Title="Elstract Launcher"
+        Width="1280" Height="800"
+        MinWidth="1000" MinHeight="600"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="CanResizeWithGrip">
+
+  <Window.DataContext>
+    <vm:MainWindowViewModel/>
+  </Window.DataContext>
+
+  <!-- DataTemplates: map ViewModel → View -->
+  <Window.Resources>
+    <DataTemplate DataType="{x:Type vm:HomePageViewModel}">
+      <views:HomePageView/>
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:LibraryViewModel}">
+      <views:LibraryView/>
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
+      <views:SettingsView/>
+    </DataTemplate>
+  </Window.Resources>
+
+  <!-- Outer border gives rounded corners and drop shadow -->
+  <Border CornerRadius="12"
+          Background="{StaticResource BgBaseBrush}"
+          BorderBrush="{StaticResource BorderSubtleBrush}"
+          BorderThickness="1">
+    <Border.Effect>
+      <DropShadowEffect BlurRadius="30" ShadowDepth="0" Opacity="0.7" Color="#000000"/>
+    </Border.Effect>
+
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="46"/>     <!-- Title bar -->
+        <RowDefinition Height="*"/>      <!-- Content   -->
+      </Grid.RowDefinitions>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="220"/>  <!-- Sidebar   -->
+        <ColumnDefinition Width="*"/>    <!-- Main area -->
+      </Grid.ColumnDefinitions>
+
+      <!-- ══════════════════════════════════════════════════
+           TITLE BAR  (row 0, spans both columns)
+           ══════════════════════════════════════════════════ -->
+      <Border Grid.Row="0" Grid.ColumnSpan="2"
+              Background="{StaticResource BgDeepBrush}"
+              CornerRadius="12,12,0,0"
+              MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+          </Grid.ColumnDefinitions>
+
+          <!-- Logo + App name -->
+          <StackPanel Grid.Column="0" Orientation="Horizontal"
+                      VerticalAlignment="Center" Margin="16,0,0,0">
+            <!-- Pink diamond logo -->
+            <Viewbox Width="22" Height="22" Margin="0,0,8,0">
+              <Canvas Width="100" Height="100">
+                <Polygon Points="50,5 95,50 50,95 5,50"
+                         Fill="{StaticResource PinkGradient}">
+                  <Polygon.Effect>
+                    <DropShadowEffect Color="#FF1A7A" BlurRadius="10"
+                                      ShadowDepth="0" Opacity="0.8"/>
+                  </Polygon.Effect>
+                </Polygon>
+                <Polygon Points="50,28 72,50 50,72 28,50"
+                         Fill="#130F18" Opacity="0.7"/>
+              </Canvas>
+            </Viewbox>
+            <TextBlock Text="ELSTRACT"
+                       Foreground="{StaticResource TextPrimaryBrush}"
+                       FontFamily="{StaticResource FontDisplay}"
+                       FontSize="14" FontWeight="Bold"
+                       VerticalAlignment="Center"
+                       LetterSpacing="3"/>
+            <TextBlock Text="LAUNCHER"
+                       Foreground="{StaticResource TextAccentBrush}"
+                       FontFamily="{StaticResource FontDisplay}"
+                       FontSize="14" FontWeight="Bold"
+                       Margin="5,0,0,0"
+                       VerticalAlignment="Center"
+                       LetterSpacing="3"/>
+          </StackPanel>
+
+          <!-- Drag region -->
+          <Border Grid.Column="1" Background="Transparent"/>
+
+          <!-- Window control buttons -->
+          <StackPanel Grid.Column="2" Orientation="Horizontal"
+                      VerticalAlignment="Stretch" Margin="0,0,4,0">
+            <Button Style="{StaticResource IconButton}"
+                    Click="MinimizeButton_Click"
+                    ToolTip="Minimize"
+                    Width="40" Height="46">
+              <TextBlock Text="─" Foreground="{StaticResource TextSecondaryBrush}"
+                         FontSize="12" VerticalAlignment="Center"/>
+            </Button>
+            <Button Style="{StaticResource IconButton}"
+                    Click="MaximizeButton_Click"
+                    ToolTip="Maximize / Restore"
+                    Width="40" Height="46">
+              <TextBlock x:Name="MaxIcon" Text="□"
+                         Foreground="{StaticResource TextSecondaryBrush}"
+                         FontSize="12" VerticalAlignment="Center"/>
+            </Button>
+            <Button Style="{StaticResource IconButton}"
+                    Click="CloseButton_Click"
+                    ToolTip="Close"
+                    Width="44" Height="46">
+              <Border CornerRadius="0,12,0,0" Background="Transparent">
+                <TextBlock Text="✕"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="12" VerticalAlignment="Center"/>
+              </Border>
+            </Button>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <!-- Separator line under title bar -->
+      <Border Grid.Row="0" Grid.ColumnSpan="2"
+              VerticalAlignment="Bottom" Height="1"
+              Background="{StaticResource BorderSubtleBrush}"/>
+
+      <!-- ══════════════════════════════════════════════════
+           SIDEBAR  (row 1, col 0)
+           ══════════════════════════════════════════════════ -->
+      <Border Grid.Row="1" Grid.Column="0"
+              Background="{StaticResource SidebarGradient}"
+              BorderBrush="{StaticResource BorderSubtleBrush}"
+              BorderThickness="0,0,1,0"
+              CornerRadius="0,0,0,12">
+
+        <DockPanel>
+          <!-- Nav items -->
+          <StackPanel DockPanel.Dock="Top" Margin="10,16,10,0" Spacing="4">
+
+            <!-- Home -->
+            <Button Style="{StaticResource NavButton}"
+                    Command="{Binding NavHomeCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="12">
+                <TextBlock Text="⌂" FontSize="16" VerticalAlignment="Center"
+                           Foreground="{StaticResource PinkLightBrush}"/>
+                <TextBlock Text="Home" FontSize="14" VerticalAlignment="Center"/>
+              </StackPanel>
+            </Button>
+
+            <!-- Library -->
+            <Button Style="{StaticResource NavButton}"
+                    Command="{Binding NavLibraryCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="12">
+                <TextBlock Text="▣" FontSize="16" VerticalAlignment="Center"
+                           Foreground="{StaticResource PinkLightBrush}"/>
+                <TextBlock Text="Library" FontSize="14" VerticalAlignment="Center"/>
+              </StackPanel>
+            </Button>
+
+            <!-- Settings -->
+            <Button Style="{StaticResource NavButton}"
+                    Command="{Binding NavSettingsCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="12">
+                <TextBlock Text="⚙" FontSize="16" VerticalAlignment="Center"
+                           Foreground="{StaticResource PinkLightBrush}"/>
+                <TextBlock Text="Settings" FontSize="14" VerticalAlignment="Center"/>
+              </StackPanel>
+            </Button>
+
+          </StackPanel>
+
+          <!-- Spacer -->
+          <StackPanel DockPanel.Dock="Bottom" Margin="10,0,10,16">
+            <Separator Background="{StaticResource BorderSubtleBrush}" Margin="0,0,0,12"/>
+            <!-- Version badge -->
+            <Border Background="{StaticResource PinkGradientSubtle}"
+                    BorderBrush="{StaticResource BorderActiveBrush}"
+                    BorderThickness="1" CornerRadius="8" Padding="10,6">
+              <StackPanel>
+                <TextBlock Text="Elstract Launcher"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="11"/>
+                <TextBlock Text="{Binding HomeVm.CurrentVersion, StringFormat='v{0}'}"
+                           Foreground="{StaticResource PinkLightBrush}"
+                           FontSize="12" FontWeight="SemiBold"/>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <!-- ══════════════════════════════════════════════════
+           MAIN CONTENT AREA  (row 1, col 1)
+           ══════════════════════════════════════════════════ -->
+      <Border Grid.Row="1" Grid.Column="1"
+              Background="{StaticResource BgBaseBrush}"
+              CornerRadius="0,0,12,0">
+        <ContentControl Content="{Binding CurrentPage}"/>
+      </Border>
+
+    </Grid>
+  </Border>
+</Window>

@@ -1,0 +1,76 @@
+<!--
+  ╔══════════════════════════════════════════════════════════╗
+  ║  Elstract Launcher — Views/SettingsToggleRow.xaml       ║
+  ║  Label + description + custom pink toggle switch        ║
+  ╚══════════════════════════════════════════════════════════╝
+-->
+<UserControl x:Class="ElstractLauncher.Views.SettingsToggleRow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Margin="0,0,0,12">
+  <Border Background="{StaticResource BgCardBrush}"
+          BorderBrush="{StaticResource BorderSubtleBrush}"
+          BorderThickness="1" CornerRadius="10"
+          Padding="16,12">
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="16"/>
+        <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+
+      <StackPanel Grid.Column="0">
+        <TextBlock x:Name="LabelText"
+                   Foreground="{StaticResource TextPrimaryBrush}"
+                   FontSize="13" FontWeight="SemiBold"/>
+        <TextBlock x:Name="DescText"
+                   Foreground="{StaticResource TextMutedBrush}"
+                   FontSize="12" Margin="0,3,0,0"
+                   TextWrapping="Wrap"/>
+      </StackPanel>
+
+      <!-- Custom toggle switch -->
+      <Border Grid.Column="2" Width="44" Height="24"
+              CornerRadius="12" Cursor="Hand"
+              VerticalAlignment="Center">
+        <Border.Style>
+          <Style TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource BorderSubtleBrush}"/>
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding IsOn, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                <Setter Property="Background" Value="{StaticResource PinkPrimaryBrush}"/>
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Border.Style>
+        <Border.InputBindings>
+          <MouseBinding MouseAction="LeftClick"
+                        Command="{Binding ToggleCommand,
+                                  RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+        </Border.InputBindings>
+
+        <!-- Knob -->
+        <Ellipse Width="18" Height="18" Fill="White"
+                 VerticalAlignment="Center">
+          <Ellipse.Style>
+            <Style TargetType="Ellipse">
+              <Setter Property="Margin" Value="3,0,0,0"/>
+              <Setter Property="HorizontalAlignment" Value="Left"/>
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding IsOn,
+                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                             Value="True">
+                  <Setter Property="Margin" Value="0,0,3,0"/>
+                  <Setter Property="HorizontalAlignment" Value="Right"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Ellipse.Style>
+          <Ellipse.Effect>
+            <DropShadowEffect Color="#000" BlurRadius="4" ShadowDepth="1" Opacity="0.4"/>
+          </Ellipse.Effect>
+        </Ellipse>
+      </Border>
+    </Grid>
+  </Border>
+</UserControl>

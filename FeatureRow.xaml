@@ -1,0 +1,23 @@
+/*
+ * ╔══════════════════════════════════════════════════════════╗
+ * ║  Elstract Launcher — Views/LibraryView.xaml.cs          ║
+ * ║  Code-behind for LibraryView — minimal, VM does logic   ║
+ * ╚══════════════════════════════════════════════════════════╝
+ */
+
+using System.Windows.Controls;
+using ElstractLauncher.Models;
+using ElstractLauncher.ViewModels;
+
+namespace ElstractLauncher.Views;
+
+public partial class LibraryView : UserControl
+{
+    public LibraryView()
+    {
+        InitializeComponent();
+        DataContext = App.Library != null
+            ? new LibraryViewModel()
+            : new LibraryViewModel();
+    }
+}

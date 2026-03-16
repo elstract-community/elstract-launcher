@@ -1,0 +1,95 @@
+/*
+ * ╔══════════════════════════════════════════════════════════╗
+ * ║  Elstract Launcher — Services/UpdateService.cs          ║
+ * ║  Queries the GitHub Releases API to detect newer        ║
+ * ║  versions of the launcher and provide download links.   ║
+ * ╚══════════════════════════════════════════════════════════╝
+ */
+
+using System.Net.Http;
+using System.Net.Http.Headers;
+using Newtonsoft.Json.Linq;
+
+namespace ElstractLauncher.Services;
+
+public record GitHubRelease(
+    string TagName,
+    string Name,
+    string Body,
+    string HtmlUrl,
+    DateTime PublishedAt,
+    bool IsPreRelease);
+
+public class UpdateService
+{
+    private readonly string _currentVersion;
+    private readonly string _repo;          // e.g. "elstract-community/elstract-launcher"
+    private readonly HttpClient _http;
+
+    public UpdateService(string currentVersion, string repo)
+    {
+        _currentVersion = currentVersion;
+        _repo           = repo;
+        _http           = new HttpClient();
+        _http.DefaultRequestHeaders.UserAgent
+            .Add(new ProductInfoHeaderValue("ElstractLauncher", currentVersion));
+    }
+
+    // ── GitHub API ────────────────────────────────────────────────────
+
+    /// <summary>Fetches the latest release from GitHub.</summary>
+    public async Task<GitHubRelease?> GetLatestReleaseAsync()
+    {
+        try
+        {
+            var url  = $"https://api.github.com/repos/{_repo}/releases/latest";
+            var json = await _http.GetStringAsync(url);
+            return ParseRelease(JObject.Parse(json));
+        }
+        catch { return null; }
+    }
+
+    /// <summary>Fetches all releases (up to 10) from GitHub.</summary>
+    public async Task<List<GitHubRelease>> GetAllReleasesAsync()
+    {
+        try
+        {
+            var url  = $"https://api.github.com/repos/{_repo}/releases?per_page=10";
+            var json = await _http.GetStringAsync(url);
+            var arr  = JArray.Parse(json);
+            return arr.Select(r => ParseRelease((JObject)r))
+                      .Where(r => r is not null)
+                      .Cast<GitHubRelease>()
+                      .ToList();
+        }
+        catch { return new(); }
+    }
+
+    /// <summary>Returns true if <paramref name="release"/> is newer than the current version.</summary>
+    public bool IsNewer(GitHubRelease release)
+    {
+        var tag     = release.TagName.TrimStart('v');
+        var current = _currentVersion.TrimStart('v');
+
+        return Version.TryParse(tag, out var remoteVer) &&
+               Version.TryParse(current, out var localVer) &&
+               remoteVer > localVer;
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────
+
+    private static GitHubRelease? ParseRelease(JObject o)
+    {
+        try
+        {
+            return new GitHubRelease(
+                TagName:     (string?)o["tag_name"]     ?? "",
+                Name:        (string?)o["name"]         ?? "",
+                Body:        (string?)o["body"]         ?? "",
+                HtmlUrl:     (string?)o["html_url"]     ?? "",
+                PublishedAt: (DateTime?)o["published_at"] ?? DateTime.MinValue,
+                IsPreRelease:(bool?)o["prerelease"]     ?? false);
+        }
+        catch { return null; }
+    }
+}

@@ -1,0 +1,41 @@
+/*
+ * ╔══════════════════════════════════════════════════════════╗
+ * ║  Elstract Launcher — Services/SettingsService.cs        ║
+ * ║  Loads and saves AppSettings to JSON.                   ║
+ * ╚══════════════════════════════════════════════════════════╝
+ */
+
+using ElstractLauncher.Models;
+using Newtonsoft.Json;
+
+namespace ElstractLauncher.Services;
+
+public class SettingsService
+{
+    private readonly string _path = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "Elstract", "settings.json");
+
+    public AppSettings Current { get; private set; } = new();
+
+    public void Load()
+    {
+        try
+        {
+            if (!File.Exists(_path)) return;
+            var json = File.ReadAllText(_path);
+            Current  = JsonConvert.DeserializeObject<AppSettings>(json) ?? new();
+        }
+        catch { Current = new(); }
+    }
+
+    public void Save()
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
+            File.WriteAllText(_path, JsonConvert.SerializeObject(Current, Formatting.Indented));
+        }
+        catch { }
+    }
+}

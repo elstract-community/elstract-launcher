@@ -1,0 +1,149 @@
+/*
+ * ╔══════════════════════════════════════════════════════════╗
+ * ║  Elstract Launcher — Services/SteamService.cs           ║
+ * ║  Fetches game data from the public Steam Store API.     ║
+ * ║  No API key required — uses freely available endpoints. ║
+ * ║  Endpoints used:                                        ║
+ * ║  • https://store.steampowered.com/api/storesearch       ║
+ * ║  • https://store.steampowered.com/api/appdetails        ║
+ * ╚══════════════════════════════════════════════════════════╝
+ */
+
+using System.Net.Http;
+using ElstractLauncher.Models;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+namespace ElstractLauncher.Services;
+
+/// <summary>
+/// All HTTP requests to Steam are read-only, no auth tokens needed.
+/// The launcher does NOT communicate with any private server.
+/// </summary>
+public class SteamService
+{
+    private readonly HttpClient _http;
+
+    public SteamService()
+    {
+        _http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+        _http.DefaultRequestHeaders.Add("User-Agent", "ElstractLauncher/1.0");
+    }
+
+    // ── Search ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Searches the Steam store for games matching <paramref name="query"/>.
+    /// Returns up to 15 results.
+    /// </summary>
+    public async Task<List<SteamSearchResult>> SearchGamesAsync(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            return new();
+
+        try
+        {
+            var url = $"https://store.steampowered.com/api/storesearch" +
+                      $"?term={Uri.EscapeDataString(query)}&l=english&cc=US";
+
+            var json = await _http.GetStringAsync(url);
+            var obj  = JObject.Parse(json);
+            var items = obj["items"] as JArray;
+
+            if (items is null) return new();
+
+            return items
+                .Select(i => new SteamSearchResult
+                {
+                    AppId = (int)(i["id"] ?? 0),
+                    Name  = (string?)(i["name"] ?? "") ?? ""
+                })
+                .Where(r => r.AppId > 0 && !string.IsNullOrEmpty(r.Name))
+                .Take(15)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Steam] Search error: {ex.Message}");
+            return new();
+        }
+    }
+
+    // ── App details ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// Fetches detailed metadata for a specific Steam App ID.
+    /// Returns null on failure or if the app is not a game.
+    /// </summary>
+    public async Task<SteamAppDetails?> GetAppDetailsAsync(int appId)
+    {
+        try
+        {
+            var url  = $"https://store.steampowered.com/api/appdetails?appids={appId}&cc=US&l=english";
+            var json = await _http.GetStringAsync(url);
+            var root = JObject.Parse(json);
+            var data = root[appId.ToString()]?["data"];
+
+            if (data is null) return null;
+            if ((string?)data["type"] is not ("game" or "dlc")) return null;
+
+            // Parse genres
+            var genresList = data["genres"]?
+                .Select(g => (string?)g["description"])
+                .Where(g => g != null)
+                .ToList() ?? new();
+
+            // Parse release date
+            DateTime? releaseDate = null;
+            var relDateStr = (string?)data["release_date"]?["date"];
+            if (!string.IsNullOrEmpty(relDateStr) &&
+                DateTime.TryParse(relDateStr, out var parsedDate))
+            {
+                releaseDate = parsedDate;
+            }
+
+            return new SteamAppDetails
+            {
+                AppId          = appId,
+                Name           = (string?)data["name"] ?? string.Empty,
+                Developer      = data["developers"]?.FirstOrDefault()?.Value<string>(),
+                Publisher      = data["publishers"]?.FirstOrDefault()?.Value<string>(),
+                ShortDesc      = (string?)data["short_description"],
+                Genres         = string.Join(", ", genresList),
+                ReleaseDate    = releaseDate,
+                HeaderImageUrl = (string?)data["header_image"]
+            };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Steam] Details error: {ex.Message}");
+            return null;
+        }
+    }
+
+    // ── Icon download ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Downloads the Steam capsule/header image to a local cache path.
+    /// Returns the local file path or null on failure.
+    /// </summary>
+    public async Task<string?> DownloadIconAsync(int appId, string cacheFolder)
+    {
+        try
+        {
+            Directory.CreateDirectory(cacheFolder);
+            var localPath = Path.Combine(cacheFolder, $"{appId}_icon.jpg");
+
+            if (File.Exists(localPath)) return localPath; // already cached
+
+            var url   = $"https://cdn.akamai.steamstatic.com/steam/apps/{appId}/capsule_231x87.jpg";
+            var bytes = await _http.GetByteArrayAsync(url);
+            await File.WriteAllBytesAsync(localPath, bytes);
+            return localPath;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+}

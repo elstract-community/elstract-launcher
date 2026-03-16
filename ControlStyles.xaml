@@ -1,0 +1,180 @@
+/*
+ * ╔══════════════════════════════════════════════════════════╗
+ * ║  Elstract Launcher — Services/LibraryService.cs         ║
+ * ║  Manages the full game library:                         ║
+ * ║  • JSON persistence to %AppData%\Elstract\library.json  ║
+ * ║  • Game launch / process monitoring                     ║
+ * ║  • Playtime tracking per session                        ║
+ * ╚══════════════════════════════════════════════════════════╝
+ */
+
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Windows;
+using ElstractLauncher.Models;
+using Newtonsoft.Json;
+
+namespace ElstractLauncher.Services;
+
+/// <summary>
+/// Central service for all library operations.
+/// Exposes an <see cref="ObservableCollection{Game}"/> that the UI binds to.
+/// </summary>
+public class LibraryService
+{
+    // ── Fields ────────────────────────────────────────────────────────
+    private readonly SettingsService _settings;
+    private readonly string _libPath;
+
+    // key = Game.Id, value = (process, start-time) for active sessions
+    private readonly Dictionary<Guid, (Process Proc, DateTime Start)> _sessions = new();
+
+    // ── Public state ──────────────────────────────────────────────────
+    public ObservableCollection<Game> Games { get; } = new();
+
+    public LibraryService(SettingsService settings)
+    {
+        _settings = settings;
+        _libPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "Elstract", "library.json");
+    }
+
+    // ── Persistence ───────────────────────────────────────────────────
+
+    public void Load()
+    {
+        try
+        {
+            if (!File.Exists(_libPath)) return;
+            var json  = File.ReadAllText(_libPath);
+            var games = JsonConvert.DeserializeObject<List<Game>>(json) ?? new();
+            Games.Clear();
+            foreach (var g in games) Games.Add(g);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[LibraryService] Load error: {ex.Message}");
+        }
+    }
+
+    public void SaveAll()
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(_libPath)!);
+            var json = JsonConvert.SerializeObject(Games, Formatting.Indented);
+            File.WriteAllText(_libPath, json);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[LibraryService] Save error: {ex.Message}");
+        }
+    }
+
+    // ── CRUD ──────────────────────────────────────────────────────────
+
+    public void AddGame(Game game)
+    {
+        Games.Add(game);
+        SaveAll();
+    }
+
+    public void RemoveGame(Game game)
+    {
+        Games.Remove(game);
+        SaveAll();
+    }
+
+    public void UpdateGame(Game game)
+    {
+        SaveAll(); // already in collection, just persist
+    }
+
+    // ── Launch & tracking ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Launches the game executable, starts playtime tracking,
+    /// notifies Discord RPC, and monitors the process for exit.
+    /// </summary>
+    public async Task LaunchGameAsync(Game game)
+    {
+        if (!game.IsExeLinked)
+            throw new InvalidOperationException("No executable linked to this game.");
+
+        if (game.IsRunning)
+            return; // already running
+
+        var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName         = game.ExePath,
+                WorkingDirectory = Path.GetDirectoryName(game.ExePath),
+                UseShellExecute  = true
+            },
+            EnableRaisingEvents = true
+        };
+
+        process.Start();
+        var startTime = DateTime.UtcNow;
+        _sessions[game.Id] = (process, startTime);
+        game.IsRunning   = true;
+        game.LastPlayed  = DateTime.Now;
+        game.LaunchCount++;
+
+        // Notify Discord
+        App.Discord.SetGamePresence(game);
+
+        // Minimize launcher if configured
+        if (_settings.Current.MinimizeOnLaunch)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Application.Current.MainWindow.WindowState = WindowState.Minimized;
+            });
+        }
+
+        // Monitor the process asynchronously
+        await Task.Run(() =>
+        {
+            try { process.WaitForExit(); }
+            catch { /* process may have already exited */ }
+        });
+
+        OnGameExited(game, startTime);
+    }
+
+    private void OnGameExited(Game game, DateTime sessionStart)
+    {
+        var elapsed = DateTime.UtcNow - sessionStart;
+        game.TotalPlayTime += elapsed;
+        game.IsRunning      = false;
+        _sessions.Remove(game.Id);
+
+        App.Discord.SetIdlePresence();
+        SaveAll();
+
+        if (_settings.Current.CloseOnGameExit)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+                Application.Current.Shutdown());
+        }
+        else
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                if (Application.Current.MainWindow.WindowState == WindowState.Minimized)
+                    Application.Current.MainWindow.WindowState = WindowState.Normal;
+            });
+        }
+    }
+
+    /// <summary>Returns playtime for a game rounded to the nearest minute.</summary>
+    public TimeSpan GetActiveSessionTime(Game game)
+    {
+        if (_sessions.TryGetValue(game.Id, out var session))
+            return DateTime.UtcNow - session.Start;
+        return TimeSpan.Zero;
+    }
+}
